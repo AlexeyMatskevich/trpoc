@@ -1,0 +1,130 @@
+x-app: &app
+  build:
+    context: .
+    args:
+      TRUFFLERUBY_VERSION: "24.0.1"
+      PG_MAJOR: "16"
+  image: trpoc-backend-dev:1.0.0
+  privileged: true
+  environment: &env
+    RAILS_ENV: ${RAILS_ENV:-development}
+  tmpfs:
+    - /tmp
+    - /app/tmp/pids
+
+x-backend: &backend
+  <<: *app
+  stdin_open: true
+  tty: true
+  volumes:
+    - ..:/app:cached
+    - bundle:/usr/local/bundle
+    - history:/usr/local/hist
+    - ./.psqlrc:/root/.psqlrc:ro
+    - ./.bashrc:/root/.bashrc:ro
+  environment: &backend_environment
+    <<: *env
+#    REDIS_URL: redis://redis:6379/
+    DATABASE_URL: postgres://postgres:postgres@postgres:5432
+#    SESSION_SECRET: "1111111111111111111111111111111111111111111111111111111111111111"
+#    HMAC_SECRET: "1111111111111111111111111111111111111111111111111111111111111111"
+#    SMTP_ADDRESS: mail
+#    SMTP_PORT: 1025
+#    EMAIL_FROM: "example@mail.com"
+#    MALLOC_ARENA_MAX: 2
+#    WEB_CONCURRENCY: ${WEB_CONCURRENCY:-1}
+    BOOTSNAP_CACHE_DIR: /usr/local/bundle/_bootsnap
+    XDG_DATA_HOME: /app/tmp/cache
+    HISTFILE: /usr/local/hist/.bash_history
+    PSQL_HISTFILE: /usr/local/hist/.psql_history
+    IRB_HISTFILE: /usr/local/hist/.irb_history
+    EDITOR: vi
+    DATABASE_CLEANER_ALLOW_REMOTE_DATABASE_URL: true
+#    RUBY_DEBUG_PORT: 12345
+#    RUBY_DEBUG_HOST: 0.0.0.0
+#    DOMAIN: localhost
+  depends_on: &backend_depends_on
+    postgres:
+      condition: service_healthy
+#    redis:
+#      condition: service_healthy
+
+services:
+#  caddy:
+#    image: caddy:2.6.1-alpine
+#    volumes:
+#      - ./caddy/Caddyfile:/etc/caddy/Caddyfile
+#      - caddy_data:/data
+#      - caddy_config:/config
+#    ports:
+#      - "80:80"
+#      - "443:443"
+#      - "443:443/udp"
+#    depends_on:
+#      backend:
+#        condition: service_started
+
+  rails:
+    <<: *backend
+    command: bundle exec rails
+
+#  rspec:
+#    <<: *backend
+#    command: bundle exec rspec
+#    ports:
+#      - 12345:12345
+#    depends_on:
+#      mail:
+#        condition: service_started
+#      postgres:
+#        condition: service_healthy
+#      redis:
+#        condition: service_healthy
+
+  backend:
+    <<: *backend
+    command: bundle exec rails server -b 0.0.0.0
+    ports:
+      - "3000:3000"
+  #    depends_on:
+  #      sidekiq:
+  #        condition: service_started
+
+#  sidekiq:
+#    <<: *backend
+#    command: bundle exec sidekiq
+
+  postgres:
+    image: postgres:16
+    volumes:
+      - .psqlrc:/root/.psqlrc:ro
+      - postgres:/var/lib/postgresql/data
+      - history:/user/local/hist
+    environment:
+      PSQL_HISTFILE: /user/local/hist/.psql_history
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: poc_development
+    ports:
+      - 5432:5432
+    healthcheck:
+      test: pg_isready -U postgres -h 127.0.0.1
+      interval: 5s
+
+#  redis:
+#    image: redis:6.2-alpine
+#    volumes:
+#      - redis:/data
+#    ports:
+#      - 6379:6379
+#    healthcheck:
+#      test: redis-cli ping
+#      interval: 1s
+#      timeout: 3s
+#      retries: 30
+volumes:
+  history:
+  postgres:
+  bundle:
+#  redis:
+#  caddy_data:
+#  caddy_config:

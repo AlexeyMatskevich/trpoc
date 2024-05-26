@@ -1,0 +1,15 @@
+defaults: &defaults
+  adapter: postgresql
+  pool: 5
+
+development:
+  <<: *defaults
+  database: trpoc_development
+
+test:
+  <<: *defaults
+  database: trpoc_test
+
+production:
+  <<: *defaults
+  database: trpoc_production

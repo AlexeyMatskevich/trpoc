@@ -22,4 +22,6 @@ Things you may want to cover:
 * Deployment instructions
 
 * ...
- 
+
+Java.add_to_classpath("/app/pulsar-java-client/lib/build/libs/lib-all.jar")
+wrapper = Java.type('org.apache.pulsar.client.api.PulsarClient')
